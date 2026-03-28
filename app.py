@@ -29,7 +29,8 @@ if uploaded_file is not None:
     col1, col2 = st.columns(2)
     
     with col1:
-        st.image(uploaded_file, caption="Image originale", use_column_width=True)
+        #st.image(uploaded_file, caption="Image originale", use_column_width=True)
+        st.image(uploaded_file, caption="Image originale", use_container_width=True)
     
     if st.button("Lancer l'analyse"):
         with st.spinner('Analyse en cours... cela peut prendre 1 à 2 minutes selon la taille.'):
