@@ -14,7 +14,7 @@ st.write("Téléchargez une image aérienne pour obtenir le rapport de segmentat
 # 1. Chargement du modèle (mis en cache pour la vitesse)
 @st.cache_resource
 def get_model():
-    return load_model("checkpoints/best_model.pth")
+    return load_model("best_model.pth")
 
 model = get_model()
 
