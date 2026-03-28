@@ -71,7 +71,7 @@ st.divider()
 st.markdown(
     """
     <div style="text-align: center; color: grey;">
-        <p>Développé par <strong>Wassi</strong> | Projet de fin d'études en Télédétection & IA</p>
+        <p>Développé par <strong>Hubert SALANON</strong> |Télédétection & IA</p>
     </div>
     """, 
     unsafe_allow_html=True
