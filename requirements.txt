@@ -6,3 +6,5 @@ numpy
 tqdm
 streamlit
 albumentations
+matplotlib
+pandas
