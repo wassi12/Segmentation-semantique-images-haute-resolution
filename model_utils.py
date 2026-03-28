@@ -104,6 +104,7 @@ def predict_large_image_smooth (model , image_path , output_path , patch_size=51
             
             # Prétraitement (doit être identique à l'entraînement !)
             inp = torch . tensor (patch ) . permute (2 , 0 , 1 ) . float () / 255
+            inp = inp.unsqueeze(0)  # Ajoute la dimension de batch [1, 3, 512, 512]
             # Si tu as utilisé normalization ImageNet à l'entraînement, AJOUTE LA ICI
             # mean = [0.485, 0.456, 0.406], std = [0.229, 0.224, 0.225]
             # inp = (inp - torch.tensor(mean).view(3, 1, 1)) / torch.tensor(std).view(3, 1, 1)
