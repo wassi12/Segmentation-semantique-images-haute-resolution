@@ -3,96 +3,77 @@ import torch
 import cv2
 import numpy as np
 import os
-from model_utils import load_model, predict_large_image_smooth, save_visual_report
+from model_utils import load_model, predict_large_image_smooth, colorize_mask, CLASS_MAP
 
-# Configuration de la page
-st.set_page_config(page_title="Analyse Drone - Segmentation", layout="wide", page_icon="Base_icon.png")
+# Configuration
+st.set_page_config(page_title="Analyse Drone - Segmentation", layout="wide")
 
-# --- INITIALISATION DE LA MÉMOIRE (SESSION STATE) ---
+# --- MÉMOIRE ---
 if 'segmentation_done' not in st.session_state:
     st.session_state.segmentation_done = False
 if 'last_mask' not in st.session_state:
     st.session_state.last_mask = None
-if 'current_image' not in st.session_state:
-    st.session_state.current_image = None
 
-# --- BARRE LATÉRALE (GUIDE & PARAMÈTRES) ---
+# --- SIDEBAR ---
 with st.sidebar:
-    st.header("📖 Guide d'utilisation")
-    st.info("""
-    1. **Charger** une image drone.
-    2. **Cliquer** sur 'Lancer l'analyse'.
-    3. **Ajuster** le GSD si besoin (le rapport se mettra à jour automatiquement).
-    """)
-    st.divider()
-    st.markdown("### 🛠️ Paramètres")
-    gsd = st.slider("Résolution (GSD en cm/px)", 1.0, 10.0, 3.0)
-    st.caption("Le GSD permet de calculer les surfaces exactes en m².")
+    st.header("⚙️ Paramètres")
+    gsd = st.slider("Résolution (GSD en cm/px)", 1.0, 10.0, 3.0, step=0.1)
+    st.info("Le GSD modifie le calcul des surfaces (m²) sans changer le dessin.")
 
-# --- CORPS DE L'APPLICATION ---
-st.title("🏠 Détection Automatique des éléments d'occupation du sol")
-st.write("Cet outil utilise un réseau de neurones **DeepLabV3+** pour segmenter les images aériennes.")
+st.title("🏠 Analyse Drone & Segmentation IA")
 
-# 1. Chargement du modèle
 @st.cache_resource
 def get_model():
     return load_model("best_model.pth")
 
 model = get_model()
+uploaded_file = st.file_uploader("Charger une image...", type=["jpg", "png"])
 
-# 2. Interface de téléchargement
-uploaded_file = st.file_uploader("Choisir une image drone (JPG/PNG)...", type=["jpg", "jpeg", "png"])
-
-if uploaded_file is not None:
-    # Si on change d'image, on réinitialise la mémoire
-    if st.session_state.current_image != uploaded_file.name:
-        st.session_state.segmentation_done = False
-        st.session_state.last_mask = None
-        st.session_state.current_image = uploaded_file.name
-
-    # Sauvegarde temporaire de l'image
+if uploaded_file:
     with open("temp_input.jpg", "wb") as f:
         f.write(uploaded_file.getbuffer())
 
-    col1, col2 = st.columns(2)
-
-    with col1:
-        st.subheader("🖼️ Image Originale")
+    c1, c2 = st.columns(2)
+    with c1:
+        st.subheader("🖼️ Originale")
         st.image(uploaded_file, use_container_width=True)
-        
-        # Bouton de lancement
-        if st.button("🚀 Lancer l'analyse"):
-            with st.spinner('Analyse Deep Learning en cours...'):
-                # Inférence (Partie lourde)
-                mask = predict_large_image_smooth(model, "temp_input.jpg", "temp_output.jpg")
-                st.session_state.last_mask = mask
-                st.session_state.segmentation_done = True
+    
+    if st.button("🚀 Lancer l'analyse"):
+        with st.spinner('Analyse en cours...'):
+            mask = predict_large_image_smooth(model, "temp_input.jpg", "temp_output.jpg")
+            st.session_state.last_mask = mask
+            st.session_state.segmentation_done = True
 
-    # 3. Affichage des résultats (Persistant)
     if st.session_state.segmentation_done:
-        # Mise à jour du rapport visuel (Partie légère, s'adapte au slider GSD)
-        save_visual_report("temp_input.jpg", st.session_state.last_mask, "report.jpg", gsd_cm=gsd)
+        mask = st.session_state.last_mask
+        with c2:
+            st.subheader("📊 Segmentation")
+            color_mask = colorize_mask(mask)
+            st.image(color_mask, use_container_width=True)
+
+        # --- NOUVELLE SECTION : RÉSULTATS EN BAS ---
+        st.divider()
+        st.subheader("📈 Rapport des Surfaces (GSD : {} cm/px)".format(gsd))
         
-        with col2:
-            st.subheader("📊 Résultat de Segmentation")
-            st.image("report.jpg", use_container_width=True)
+        # Calcul des surfaces
+        pixel_area_m2 = (gsd / 100) ** 2
+        cols = st.columns(len(CLASS_MAP)) # Une colonne par classe
+        
+        for i, (class_id, info) in enumerate(CLASS_MAP.items()):
+            pixels = np.sum(mask == class_id)
+            area = pixels * pixel_area_m2
+            
+            with cols[i]:
+                # Petit carré de couleur HTML
+                color_hex = '#%02x%02x%02x' % tuple(info['color'])
+                st.markdown(f"<div style='width:20px;height:20px;background:{color_hex};border:1px solid black;display:inline-block'></div> **{info['name']}**", unsafe_allow_html=True)
+                st.metric(label="Surface", value=f"{area:.2f} m²")
 
-            # 4. Bouton de téléchargement
-            with open("report.jpg", "rb") as file:
-                st.download_button(
-                    label="📥 Télécharger le rapport complet (JPG)",
-                    data=file,
-                    file_name=f"rapport_{uploaded_file.name}",
-                    mime="image/jpg"
-                )
+        # Bouton Téléchargement (on garde la sauvegarde image pour le rapport)
+        from model_utils import save_visual_report
+        save_visual_report("temp_input.jpg", mask, "report.jpg", gsd_cm=gsd)
+        with open("report.jpg", "rb") as f:
+            st.download_button("📥 Télécharger le rapport Image", f, "rapport.jpg", "image/jpeg")
 
-# --- PIED DE PAGE ---
-st.divider()
-st.markdown(
-    """
-    <div style="text-align: center; color: grey;">
-        <p>Développé par <strong>Wassi</strong> | Télédétection & IA</p>
-    </div>
-    """, 
-    unsafe_allow_html=True
-)
+st.markdown("---")
+st.markdown("<p style='text-align: center;'>Développé par <b>Wassi</b> | Télédétection & IA</p>", unsafe_allow_html=True)
