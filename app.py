@@ -6,7 +6,7 @@ import os
 from model_utils import load_model, predict_large_image_smooth, colorize_mask, CLASS_MAP
 
 # Configuration de la page
-st.set_page_config(page_title="Analyse Drone - Segmentation", layout="wide")
+st.set_page_config(page_title="Image Drone - Segmentation", layout="wide")
 
 # --- MÉMOIRE (SESSION STATE) ---
 if 'segmentation_done' not in st.session_state:
@@ -28,7 +28,7 @@ with st.sidebar:
     gsd = st.slider("Résolution (GSD en cm/px)", 1.0, 10.0, 3.0, step=0.1)
     st.caption("Le GSD modifie le calcul des surfaces (m²) sans changer le dessin.")
 
-st.title("🏠 Analyse Drone & Segmentation IA")
+st.title("🏠 Image Drone & Segmentation sémantique")
 
 @st.cache_resource
 def get_model():
