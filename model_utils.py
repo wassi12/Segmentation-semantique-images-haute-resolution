@@ -87,8 +87,7 @@ def predict_large_image_smooth (model , image_path , output_path , patch_size=51
     image = cv2 . imread (image_path )
     image = cv2 . cvtColor (image , cv2 . COLOR_BGR2RGB )
     h , w = image . shape [: 2 ]
-
-    # -- NOUVEAU : On initialise des matrices pour accumuler les probabilités --
+    
     # Shape: (N_CLASSES, H, W)
     sum_probs = np.zeros((N_CLASSES, h, w), dtype=np.float32)
     # Compteur pour diviser et faire la moyenne
@@ -126,7 +125,7 @@ def predict_large_image_smooth (model , image_path , output_path , patch_size=51
     # On prend la classe avec la probabilité moyenne la plus élevée
     result_labels = np.argmax(final_probs, axis=0).astype(np.uint8)
 
-    # 3. Transformation en image colorée et sauvegarde (ton code existant)
+    # 3. Transformation en image colorée et sauvegarde.
     color_result = colorize_mask (result_labels )
     color_result_bgr = cv2 . cvtColor (color_result , cv2 . COLOR_RGB2BGR )
     cv2 . imwrite (output_path , color_result_bgr )
